@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 
 <head>
     <meta charset="UTF-8">
@@ -130,12 +130,6 @@
         }
 
         const loadingTexts = {
-            en: [
-                "Gathering team data...",
-                "Syncing latest matches...",
-                "Optimizing dashboard...",
-                "Ready to go!"
-            ],
             pl: [
                 "Pobieranie danych zespołu...",
                 "Synchronizacja meczów...",
@@ -146,7 +140,7 @@
 
         async function startLoading() {
             if (window.I18n) window.I18n.init();
-            const lang = window.I18n.currentLang === 'pl' ? 'pl' : 'en';
+            const lang = 'pl';
             const texts = loadingTexts[lang];
             const textEl = document.getElementById('loader-text');
 

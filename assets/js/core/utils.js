@@ -17,11 +17,11 @@ export const formatMatchTime = (isoString) => {
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
 
-  // Auto-detect LIVE status (matches started in the last 115 minutes)
-  if (diffMins >= 0 && diffMins <= 115) {
+  // Auto-detect LIVE status (matches started in the last 135 minutes)
+  if (diffMins >= 0 && diffMins <= 135) {
     if (diffMins > 45 && diffMins <= 60) return "HT";
     const actualMin = diffMins > 60 ? diffMins - 15 : diffMins;
-    return `LIVE ${actualMin}'`;
+    return `${actualMin}'`;
   }
 
   const hours = date.getHours().toString().padStart(2, '0');
@@ -58,7 +58,7 @@ export const formatDate = (isoString) => {
  */
 export const debounce = (fn, ms = 300) => {
   let timeoutId;
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn.apply(this, args), ms);
   };
@@ -72,7 +72,7 @@ export const debounce = (fn, ms = 300) => {
  */
 export const throttle = (fn, ms = 300) => {
   let lastCall = 0;
-  return function(...args) {
+  return function (...args) {
     const now = Date.now();
     if (now - lastCall >= ms) {
       lastCall = now;
@@ -91,24 +91,24 @@ export const isOnline = () => typeof navigator !== 'undefined' ? navigator.onLin
  * Updates all elements with id="date-display" with current date
  */
 export const updateDateDisplay = () => {
-    const dateEl = document.getElementById('date-display');
-    if (!dateEl) return;
+  const dateEl = document.getElementById('date-display');
+  if (!dateEl) return;
 
-    const today = new Date();
-    const options = { weekday: 'long', month: 'long', day: 'numeric' };
+  const today = new Date();
+  const options = { weekday: 'long', month: 'long', day: 'numeric' };
 
-    let dateStr;
-    const lang = (window.I18n && window.I18n.currentLang) || 'en';
+  let dateStr;
+  const lang = (window.I18n && window.I18n.currentLang) || 'en';
 
-    if (window.I18n && typeof window.I18n.getPrettyDate === 'function') {
-        dateStr = window.I18n.getPrettyDate(today.toISOString(), lang);
-    } else if (window.I18n && typeof window.I18n.formatDate === 'function') {
-        dateStr = window.I18n.formatDate(today, options);
-    } else {
-        dateStr = today.toLocaleDateString(undefined, options);
-    }
+  if (window.I18n && typeof window.I18n.getPrettyDate === 'function') {
+    dateStr = window.I18n.getPrettyDate(today.toISOString(), lang);
+  } else if (window.I18n && typeof window.I18n.formatDate === 'function') {
+    dateStr = window.I18n.formatDate(today, options);
+  } else {
+    dateStr = today.toLocaleDateString(undefined, options);
+  }
 
-    // Use textContent to replace the dots with the actual date
-    dateEl.textContent = dateStr;
-    dateEl.className = "text-[10px] font-bold uppercase tracking-[0.2em] text-gold mb-2 block";
+  // Use textContent to replace the dots with the actual date
+  dateEl.textContent = dateStr;
+  dateEl.className = "text-[10px] font-bold uppercase tracking-[0.2em] text-gold mb-2 block";
 };

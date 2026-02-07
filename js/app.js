@@ -423,6 +423,12 @@ function updateLiveMinute(match) {
     // Use fresh match data if available
     const freshMatch = currentLiveMatch || match;
 
+    // Use API provided minute if available (more accurate)
+    if (freshMatch.minute) {
+        minuteElement.textContent = freshMatch.minute + "'";
+        return;
+    }
+
     const start = new Date(freshMatch.utcDate);
     const now = new Date();
     const diffMs = now - start;
@@ -431,7 +437,7 @@ function updateLiveMinute(match) {
     let minute = '';
 
     // Same logic as formatMatchTime in utils.js
-    if (diffMins >= 0 && diffMins <= 115) {
+    if (diffMins >= 0 && diffMins <= 135) {
         if (diffMins > 45 && diffMins <= 60) {
             minute = 'HT';
         } else {
@@ -500,6 +506,23 @@ function renderNextMatch(match, isLive = false) {
         }
     }
 
+    // Shirt Colors for dynamic glow
+    const homeColor = match.homeTeam.homeShirtColor || '#ffffff';
+    const awayColor = match.awayTeam.homeShirtColor || '#ffffff'; // Fallback if away shirt color missing (API usually gives home shirt only? User says homeShirtColor in homeTeam obj, but awayTeam object structure might have it too or not? User example shows awayTeam has NO extra fields in upcoming? Wait, user example for upcoming shows awayTeam has NO extras. Live match awayTeam: NO extras. So only homeTeam has it? 
+    // Wait, the user said "In homeTeam object added...". Checks user JSON:
+    // homeTeam: { ..., homeShirtColor: "#9F0042", ... }
+    // awayTeam: { ... } (no shirt color in example). 
+    // Okay, I'll use homeColor for home team glow, but away team might need default or maybe I can't use it for away.
+
+    // Referee, Round, Venue, Stage
+    const roundInfo = match.currentRound ? `KOLEJKA ${match.currentRound}` : '';
+    const refereeInfo = match.referee?.displayName ? `Sędzia: ${match.referee.displayShortName || match.referee.displayName}` : '';
+    const venueInfo = match.venue ? `@ ${match.venue}` : '';
+    const stageInfo = (match.stageName && match.stageName !== match.competition.name) ? match.stageName : '';
+
+    const metaInfoParts = [stageInfo, roundInfo, venueInfo, refereeInfo].filter(Boolean);
+    const metaInfo = metaInfoParts.join(' • ');
+
     container.innerHTML = `
         <div class="flex flex-col items-center w-full relative" style="padding-top: 2rem;">
             <!-- Badge in top-left corner -->
@@ -519,12 +542,19 @@ function renderNextMatch(match, isLive = false) {
             </div>
             `}
 
-            <div class="flex flex-col md:flex-row items-center gap-6 md:gap-16 animate-in w-full justify-center pt-4">
-                <div class="text-center">
-                    <div class="w-20 h-20 md:w-32 md:h-32 bg-white/5 rounded-[24px] md:rounded-[40px] flex items-center justify-center border border-white/10 mb-3 mx-auto shadow-xl transition-all hover:scale-105">
+            <!-- Meta Info (Round / Referee / Venue) -->
+            ${metaInfo ? `<div class="absolute top-2 right-0 text-[9px] md:text-[10px] font-bold opacity-40 uppercase tracking-wider text-right max-w-[60%] leading-tight">${metaInfo}</div>` : ''}
+
+            <div class="flex flex-col md:flex-row items-center gap-6 md:gap-16 animate-in w-full justify-center pt-8">
+                <div class="text-center relative group">
+                    <div class="w-20 h-20 md:w-32 md:h-32 bg-white/5 rounded-[24px] md:rounded-[40px] flex items-center justify-center border border-white/10 mb-3 mx-auto shadow-xl transition-all hover:scale-105"
+                         style="box-shadow: 0 0 30px ${homeColor}20;"> <!-- Dynamic Shadow -->
                         <img src="${getTeamCrest(match.homeTeam.name || match.homeTeam.shortName, match.homeTeam.crest)}" data-name="${match.homeTeam.name || match.homeTeam.shortName}" class="w-12 md:w-20 object-contain" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
                     </div>
-                    <h3 class="font-bold text-xs md:text-xl">${match.homeTeam.shortName}</h3>
+                    <h3 class="font-bold text-xs md:text-xl flex items-center justify-center gap-2">
+                        ${match.homeTeam.shortName}
+                        ${match.homeTeam.competitionPosition ? `<span class="bg-white/10 text-[9px] px-1.5 py-0.5 rounded text-white/60 font-mono" title="Pozycja w lidze">#${match.homeTeam.competitionPosition}</span>` : ''}
+                    </h3>
                 </div>
 
                 <div class="flex flex-col items-center">
@@ -535,11 +565,14 @@ function renderNextMatch(match, isLive = false) {
                      </div>
                 </div>
 
-                <div class="text-center">
+                <div class="text-center relative group">
                      <div class="w-20 h-20 md:w-32 md:h-32 bg-white/5 rounded-[24px] md:rounded-[40px] flex items-center justify-center border border-white/10 mb-3 mx-auto shadow-xl transition-all hover:scale-105">
                         <img src="${getTeamCrest(match.awayTeam.name || match.awayTeam.shortName, match.awayTeam.crest)}" data-name="${match.awayTeam.name || match.awayTeam.shortName}" class="w-12 md:w-20 object-contain" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
                     </div>
-                    <h3 class="font-bold text-xs md:text-xl">${match.awayTeam.shortName}</h3>
+                    <h3 class="font-bold text-xs md:text-xl flex items-center justify-center gap-2">
+                        ${match.awayTeam.shortName}
+                        ${match.awayTeam.competitionPosition ? `<span class="bg-white/10 text-[9px] px-1.5 py-0.5 rounded text-white/60 font-mono" title="Pozycja w lidze">#${match.awayTeam.competitionPosition}</span>` : ''}
+                    </h3>
                 </div>
 
             </div>
@@ -682,20 +715,30 @@ async function renderFootballTable(container, tableData, competitionType = 'leag
         const crest = getTeamCrest(name, row.crest || row.team?.crest);
 
         let posClass = '';
-        if (competitionType === 'laliga') {
-            if (position <= 4) posClass = 'pos-cl';
-            else if (position === 5) posClass = 'pos-el';
-            else if (position === 6) posClass = 'pos-ecl';
-            else if (position >= 18) posClass = 'pos-rel';
-        } else if (competitionType === 'ucl') {
-            if (tableData.length > 20) { // New format
-                if (position <= 8) posClass = 'pos-cl';
-                else if (position <= 24) posClass = 'pos-el'; // Using el color for playoff
-                else posClass = 'pos-rel'; // Out
-            } else { // Group format
-                if (position <= 2) posClass = 'pos-cl';
-                else if (position === 3) posClass = 'pos-el';
-                else posClass = 'pos-rel';
+        if (row.promotion) {
+            // Map known API promotion strings to classes
+            const p = row.promotion.toLowerCase();
+            if (p.includes('liga mistrzów') || p.includes('champions league') || p.includes('awans')) posClass = 'pos-cl';
+            else if (p.includes('liga europy') || p.includes('europa league')) posClass = 'pos-el';
+            else if (p.includes('konferencji') || p.includes('conference')) posClass = 'pos-ecl';
+            else if (p.includes('spadek') || p.includes('relegation')) posClass = 'pos-rel';
+        } else {
+            // Fallback to position-based logic if API data missing
+            if (competitionType === 'laliga') {
+                if (position <= 4) posClass = 'pos-cl';
+                else if (position === 5) posClass = 'pos-el';
+                else if (position === 6) posClass = 'pos-ecl';
+                else if (position >= 18) posClass = 'pos-rel';
+            } else if (competitionType === 'ucl') {
+                if (tableData.length > 20) { // New format
+                    if (position <= 8) posClass = 'pos-cl';
+                    else if (position <= 24) posClass = 'pos-el';
+                    else posClass = 'pos-rel';
+                } else { // Group format
+                    if (position <= 2) posClass = 'pos-cl';
+                    else if (position === 3) posClass = 'pos-el';
+                    else posClass = 'pos-rel';
+                }
             }
         }
 
@@ -806,8 +849,14 @@ function renderScheduleList(type) {
                 
                 <div class="flex-1 min-w-0">
                     <div class="flex justify-between items-start mb-0.5">
-                        <h4 class="font-bold text-sm truncate">vs ${opponent.shortName}</h4>
-                        <span class="text-[10px] font-black opacity-30 uppercase tracking-widest">${m.competition.code}</span>
+                        <h4 class="font-bold text-sm truncate flex items-center gap-1.5">
+                            vs ${opponent.shortName}
+                            ${opponent.competitionPosition ? `<span class="bg-white/10 text-[9px] px-1.5 py-0.5 rounded text-white/60 font-mono">#${opponent.competitionPosition}</span>` : ''}
+                        </h4>
+                        <span class="text-[9px] font-black opacity-40 uppercase tracking-widest text-right">
+                            ${m.competition.name || m.competition.code}
+                            ${m.currentRound ? `<br><span class="opacity-60">Kolejka ${m.currentRound}</span>` : ''}
+                        </span>
                     </div>
                     <p class="text-xs text-secondary font-medium">${I18n.formatDate(date, { weekday: 'long', month: 'short', day: 'numeric' })}${timeDisplay}</p>
                 </div>
@@ -858,22 +907,31 @@ function renderTransmissions(channels) {
     }
 
     container.innerHTML = channels.map(channel => {
-        // Try to map channel name to a logo file
-        // If exact match fails, try partial check or fallback
         const filename = CHANNEL_LOGO_MAP[channel];
         let logoUrl = null;
+        if (filename) logoUrl = `${LOGO_BASE_URL}/channel/${filename}`;
 
-        if (filename) {
-            logoUrl = `${LOGO_BASE_URL}/channel/${filename}`;
-        }
+        // Dynamic gradient based on channel name hash
+        const hash = channel.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const hue = hash % 360;
+        const gradientStyle = `background: linear-gradient(135deg, hsla(${hue}, 70%, 20%, 0.8) 0%, hsla(${hue}, 70%, 10%, 0.9) 100%); border: 1px solid hsla(${hue}, 50%, 40%, 0.3);`;
 
         return `
-            <div class="flex flex-col items-center gap-2">
-                <div class="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 overflow-hidden">
-                    ${logoUrl
-                ? `<img src="${logoUrl}" alt="${channel}" class="w-full h-full object-cover">`
-                : `<span class="text-[8px] opacity-70 font-bold text-center leading-none px-1">${channel}</span>`
+            <div class="group relative flex items-center gap-3 p-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] overflow-hidden" 
+                 style="${gradientStyle} box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+                
+                <div class="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                <div class="w-10 h-10 bg-black/20 rounded-lg flex items-center justify-center p-1.5 shrink-0 backdrop-blur-sm border border-white/5">
+                     ${logoUrl
+                ? `<img src="${logoUrl}" alt="${channel}" class="w-full h-full object-contain filter drop-shadow-md">`
+                : `<span class="text-[10px] font-bold text-white/80 leading-tight text-center">${channel.substring(0, 3)}</span>`
             }
+                </div>
+                
+                <div class="flex flex-col min-w-0">
+                    <span class="text-xs font-bold text-white tracking-wide truncate">${channel}</span>
+                    <span class="text-[9px] font-medium text-white/50 uppercase tracking-wider">Transmisja</span>
                 </div>
             </div>
         `;

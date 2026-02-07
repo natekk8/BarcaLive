@@ -156,24 +156,10 @@ const I18n = {
 
     init() {
         if (this.initialized) return;
-        // 1. Detect Browser Language
-        const browserLang = navigator.language.slice(0, 2);
-        const storedLang = localStorage.getItem('bp_lang');
-
-        // 2. Logic: If != English, only toggle between that and En. If En, offer En/Pl/De.
-        if (browserLang === 'en') {
-            this.availableLangs = ['en', 'pl', 'de'];
-        } else {
-            // Check if we support the browser lang, otherwise default to just En/Pl or similar
-            if (translations[browserLang]) {
-                this.availableLangs = [browserLang, 'en'];
-            } else {
-                this.availableLangs = ['en', 'pl', 'de']; // Default set if unknown lang
-            }
-        }
+        this.availableLangs = ['pl']; // Enforce Polish only
 
         // 3. Set Current
-        this.currentLang = storedLang && this.availableLangs.includes(storedLang) ? storedLang : (this.availableLangs.includes(browserLang) ? browserLang : 'en');
+        this.currentLang = 'pl';
 
         // Initial translation
         this.updatePage();

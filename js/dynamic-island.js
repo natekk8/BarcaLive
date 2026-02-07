@@ -101,7 +101,9 @@ class DynamicIsland {
         const liveMatch = matches.find(m => {
             const start = new Date(m.utcDate);
             const diff = (now - start) / 60000;
-            return (['LIVE', 'IN_PLAY', 'PAUSED'].includes(m.status)) || (diff >= 0 && diff < 120);
+            const isStatusLive = ['LIVE', 'IN_PLAY', 'PAUSED', 'HALFTIME'].includes(m.status);
+            // Allow if status is officially live OR if within 2.5h window effectively
+            return isStatusLive || (diff >= -5 && diff < 135);
         });
 
         if (liveMatch) {
