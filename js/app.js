@@ -529,14 +529,12 @@ function renderNextMatch(match, isLive = false, standings = []) {
         const baseUrl = 'https://bwmkvehxzcdzdxiqdqin.supabase.co/storage/v1/object/public/logos/competition';
         const isDark = !document.body.classList.contains('light-theme');
         const themeSuffix = isDark ? '-dark' : '-light';
-        const rawThemeSuffix = isDark ? '-dark' : '-light'; // Ensure consistency
 
         // Normalize name for checking
         const n = name.toLowerCase();
 
         // Strict Mappings based on User Feedback
-        // "cl.png to Champions League, pd.png to La Liga, scde.png do Supercopa de Espana a cdr.png to Copa del Rey"
-        if (code === 'CL' || n.includes('champions') || n.includes('mistrz')) return `${baseUrl}/cl${themeSuffix}.png`;
+        if (code === 'CL' || n.includes('champions') || n.includes('mistrz')) return `${baseUrl}/ucl${themeSuffix}.png`; // Changed CL to UCL
         if (code === 'PD' || n.includes('la liga') || n.includes('primera')) return `${baseUrl}/pd${themeSuffix}.png`;
         if (code === 'CDR' || n.includes('copa del rey') || n.includes('puchar')) return `${baseUrl}/cdr${themeSuffix}.png`;
         if (code === 'SC' || n.includes('supercopa') || n.includes('superpuchar')) return `${baseUrl}/scde${themeSuffix}.png`;
@@ -615,7 +613,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
     const metaInfo = metaInfoParts.join(' • ');
 
     container.innerHTML = `
-        <div class="flex flex-col items-center w-full relative" style="padding-top: 2rem;">
+        <div class="flex flex-col items-center w-full relative" style="padding-top: 3rem;"> <!-- Increased padding for tile -->
             <!-- Badge in top-left corner -->
             ${isLive ? `
             <div class="absolute -top-3 left-0 z-10">
@@ -633,13 +631,15 @@ function renderNextMatch(match, isLive = false, standings = []) {
             </div>
             `}
 
-            <!-- Competition Logo (Centered Top - Robust) -->
-            <div class="absolute -top-8 left-0 w-full flex justify-center z-10 pointer-events-none">
-                 <img src="${compLogo}" class="w-12 h-12 md:w-20 md:h-20 object-contain filter drop-shadow-xl theme-logo" 
-                      data-code="${match.competition.code}" 
-                      data-name="${match.competition.name}"
-                      onerror="this.style.display='none'" 
-                      title="${match.competition.name}">
+            <!-- Competition Logo Tile (Centered Top) -->
+            <div class="absolute -top-10 left-1/2 transform -translate-x-1/2 z-20 flex justify-center">
+                 <div class="w-16 h-16 md:w-20 md:h-20 bg-white/5 rounded-[20px] md:rounded-[28px] flex items-center justify-center border border-white/10 shadow-xl backdrop-blur-md">
+                     <img src="${compLogo}" class="w-10 h-10 md:w-14 md:h-14 object-contain filter drop-shadow-md theme-logo" 
+                          data-code="${match.competition.code}" 
+                          data-name="${match.competition.name}"
+                          onerror="this.style.display='none'" 
+                          title="${match.competition.name}">
+                 </div>
             </div>
 
             <!-- Meta Info (Round / Referee / Venue) -->
