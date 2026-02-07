@@ -630,10 +630,10 @@ function renderNextMatch(match, isLive = false, standings = []) {
             </div>
             `}
 
-            <!-- Competition Logo Tile (Centered Top) -->
-            <div class="absolute -top-10 left-0 right-0 mx-auto w-fit z-20 flex justify-center pointer-events-none">
-                 <div class="w-16 h-16 md:w-20 md:h-20 bg-white/5 rounded-[20px] md:rounded-[28px] flex items-center justify-center border border-white/10 shadow-xl backdrop-blur-md pointer-events-auto">
-                     <img src="${compLogo}" class="w-10 h-10 md:w-14 md:h-14 object-contain filter drop-shadow-md theme-logo" 
+            <!-- Competition Logo Tile (Top Right) -->
+            <div class="absolute -top-4 right-4 z-20 flex justify-center pointer-events-none">
+                 <div class="w-14 h-14 md:w-20 md:h-20 bg-white/5 rounded-[18px] md:rounded-[28px] flex items-center justify-center border border-white/10 shadow-xl backdrop-blur-md pointer-events-auto">
+                     <img src="${compLogo}" class="w-9 h-9 md:w-14 md:h-14 object-contain filter drop-shadow-md theme-logo" 
                           data-code="${match.competition.code}" 
                           data-name="${match.competition.name}"
                           alt="${match.competition.name} Logo"
