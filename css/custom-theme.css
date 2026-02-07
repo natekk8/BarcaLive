@@ -20,7 +20,61 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
-/* === Match Tile Fix - Prevent Overlaps === */
+/* Font Face - SF Pro Display (Local) */
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: local('SF Pro Display'), url('../assets/fonts/SFPRODISPLAYREGULAR.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: local('SF Pro Display'), url('../assets/fonts/SFPRODISPLAYMEDIUM.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: local('SF Pro Display'), url('../assets/fonts/SFPRODISPLAYBOLD.woff') format('woff');
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    font-style: italic;
+    font-weight: 900;
+    font-display: swap;
+    src: local('SF Pro Display'), url('../assets/fonts/SFPRODISPLAYBLACKITALIC.woff') format('woff');
+}
+
+/* Performance Optimizations - Disable Layout Animations */
+.island {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease !important;
+    will-change: transform, opacity;
+}
+
+.island.expanded {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease !important;
+}
+
+.match-tile,
+.glass-premium,
+.glass-content {
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+/* Ensure no height/width transition on Next Match */
+#next-match-container,
+.next-match-card {
+    transition: none !important;
+}
+
 #next-match-container {
     position: relative;
     padding-top: 2rem !important;
