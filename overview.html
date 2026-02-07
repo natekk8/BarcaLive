@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://natekkz-n8nhost.hf.space">
+    <link rel="preconnect" href="https://fonts.cdnfonts.com">
+    <title>BarcaLive - FC Barcelona Live Scores, Fixtures &amp; News</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Follow FC Barcelona live with real-time scores, upcoming fixtures, La Liga and Champions League standings. Your premium Barcelona football hub.">
+    <meta name="keywords"
+        content="FC Barcelona, Barça, live scores, La Liga, Champions League, football, soccer, fixtures, standings">
+    <meta name="author" content="BarcaLive">
+    <link rel="canonical" href="https://barcalive.online/overview.html">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://barcalive.online/overview.html">
+    <meta property="og:title" content="BarcaLive - FC Barcelona Live Scores &amp; Fixtures">
+    <meta property="og:description"
+        content="Follow FC Barcelona live with real-time scores, upcoming fixtures, and comprehensive match statistics. Your premium Barcelona football hub.">
+    <meta property="og:image" content="https://barcalive.online/assets/favicons/apple-touch-icon.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="pl_PL">
+    <meta property="og:site_name" content="BarcaLive">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://barcalive.online/overview.html">
+    <meta name="twitter:title" content="BarcaLive - FC Barcelona Live Scores">
+    <meta name="twitter:description"
+        content="Follow FC Barcelona live with real-time scores and comprehensive match statistics.">
+    <meta name="twitter:image" content="https://barcalive.online/assets/favicons/apple-touch-icon.png">
+
+    <!-- Theme and Mobile -->
+    <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles_final.css">
+    <link rel="stylesheet" href="css/custom-theme.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+    <link rel="icon" type="image/png" href="/assets/favicons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicons/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicons/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="BarcaLive" />
+    <link rel="manifest" href="/assets/favicons/site.webmanifest" />
+</head>
+
+
+<body class="p-6 md:p-12">
+    <div class="mesh-background"></div>
+
+    <div class="noise-overlay"></div>
+    <div class="mesh-bg"></div>
+
+    <div id="dynamic-island" class="dynamic-island"></div>
+
+
+    <main id="app-content" data-init="initOverviewPage" class="max-w-6xl mx-auto mt-24">
+        <header class="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div>
+                <div id="date-display" class="flex gap-1 mb-1">
+                    <div class="w-1 h-1 rounded-full bg-yellow-400"></div>
+                    <div class="w-1 h-1 rounded-full bg-yellow-400"></div>
+                    <div class="w-1 h-1 rounded-full bg-yellow-400"></div>
+                </div>
+                <h1 class="text-5xl md:text-7xl font-bold tracking-tighter" data-i18n="overview">Overview</h1>
+            </div>
+            <div id="header-nav"></div>
+        </header>
+
+        <section id="view-overview" class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-8 glass-premium p-10 relative overflow-hidden group">
+                <!-- Badge is now rendered dynamically by JavaScript in renderNextMatch() -->
+                <div id="next-match-container" class="min-h-[200px] flex items-center justify-center">
+                </div>
+
+                <div class="mt-8 flex justify-center">
+                    <a href="schedule.html" data-spa="true" data-i18n="seeFullSchedule"
+                        class="bg-white text-black px-8 py-3 rounded-2xl font-bold text-sm hover:scale-105 transition-transform">See
+                        Full Schedule</a>
+                </div>
+            </div>
+
+            <div class="md:col-span-4 glass-premium p-8">
+                <h3 class="text-xs font-black uppercase tracking-widest opacity-40 mb-6" data-i18n="recentForm">Recent
+                    Form</h3>
+                <div id="recent-form-container" class="space-y-4">
+                </div>
+            </div>
+        </section>
+
+        <!-- Where to watch section -->
+        <section class="mt-6 glass-premium p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xs font-black uppercase tracking-widest opacity-40" data-i18n="whereToWatch">Where to
+                    Watch</h3>
+            </div>
+
+            <div id="transmissions-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- Data will be loaded here -->
+                <div class="col-span-full py-12 text-center">
+                    <div class="loading-spinner"></div>
+                    <p class="text-xs font-bold uppercase tracking-widest opacity-40 animate-pulse-slow"
+                        data-i18n="loading">Loading transmissions...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SportsOrganization",
+        "name": "BarcaLive",
+        "description": "Follow FC Barcelona live with real-time scores, fixtures, and comprehensive match statistics",
+        "url": "https://barcalive.online",
+        "logo": "https://barcalive.online/assets/favicons/apple-touch-icon.png",
+        "sameAs": [],
+        "sport": "Soccer"
+    }
+    </script>
+
+    <script src="assets/js/main.js" type="module"></script>
+</body>
+
+</html>

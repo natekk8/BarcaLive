@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarcaLive - FC Barcelona Live Scores &amp; Match Updates</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description"
+        content="Your ultimate FC Barcelona hub. Follow live scores, fixtures, standings, and real-time match updates for La Liga and Champions League.">
+    <meta name="keywords"
+        content="FC Barcelona, Barça live, Barcelona news, La Liga, Champions League, football scores, soccer fixtures">
+    <meta name="author" content="BarcaLive">
+    <link rel="canonical" href="https://barcalive.online/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://barcalive.online/">
+    <meta property="og:title" content="BarcaLive - Your FC Barcelona Live Hub">
+    <meta property="og:description"
+        content="Follow FC Barcelona with live scores, fixtures, and comprehensive match statistics.">
+    <meta property="og:image" content="https://barcalive.online/assets/favicons/apple-touch-icon.png">
+    <meta property="og:site_name" content="BarcaLive">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="BarcaLive">
+    <meta name="twitter:description" content="Your FC Barcelona live scores and updates hub.">
+    <meta name="twitter:image" content="https://barcalive.online/assets/favicons/apple-touch-icon.png">
+    <link rel="preconnect" href="https://natekkz-n8nhost.hf.space">
+    <link rel="preconnect" href="https://fonts.cdnfonts.com">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.cdnfonts.com/css/sf-pro-display" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles_final.css">
+    <link rel="stylesheet" href="css/custom-theme.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .loading-container {
+            text-align: center;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            padding: 3rem 4rem;
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .loader-text {
+            margin-top: 2rem;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: var(--gold);
+            height: 1.5rem;
+            opacity: 0.8;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-top: 2px solid var(--gold);
+            margin: 0 auto;
+        }
+    </style>
+    <link rel="icon" type="image/png" href="/assets/favicons/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicons/favicon.svg" />
+    <link rel="shortcut icon" href="/assets/favicons/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/favicons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="BarcaLive" />
+    <link rel="manifest" href="/assets/favicons/site.webmanifest" />
+</head>
+
+<body>
+    <div class="mesh-background"></div>
+    <div class="noise-overlay"></div>
+
+    <div class="loading-container">
+        <div class="loading-spinner" style="width: 60px; height: 60px; border-width: 4px;"></div>
+        <div id="loader-text" class="loader-text animate-pulse-slow">Initializing BarcaLive...</div>
+    </div>
+
+    <script type="module">
+        import { barcaAPI } from './assets/js/core/api.js';
+        import { barcaState } from './assets/js/core/state.js';
+        import './js/i18n.js';
+
+        // Check if we should skip loading screen
+        function shouldSkipLoading() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const lastLoad = localStorage.getItem('last_load_date');
+
+            // If it's a different day, we must show loading
+            if (lastLoad !== todayStr) return false;
+
+            // If it's the same day, check match status transition
+            const status = localStorage.getItem('current_match_status');
+            const matchTime = parseInt(localStorage.getItem('match_time') || '0');
+            const seenAfterMatch = localStorage.getItem('seen_after_match') === 'true';
+
+            // If there was a match today that wasn't finished when we last checked
+            // and now enough time has passed that it should be over
+            if (status && status !== 'FINISHED' && matchTime > 0) {
+                const twoHoursInMs = 2.5 * 60 * 60 * 1000; // 2.5 hours to be safe
+                if (Date.now() > matchTime + twoHoursInMs && !seenAfterMatch) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        if (shouldSkipLoading()) {
+            window.location.replace('overview.html');
+        }
+
+        const loadingTexts = {
+            en: [
+                "Gathering team data...",
+                "Syncing latest matches...",
+                "Optimizing dashboard...",
+                "Ready to go!"
+            ],
+            pl: [
+                "Pobieranie danych zespołu...",
+                "Synchronizacja meczów...",
+                "Optymalizacja panelu...",
+                "Prawie gotowe!"
+            ]
+        };
+
+        async function startLoading() {
+            if (window.I18n) window.I18n.init();
+            const lang = window.I18n.currentLang === 'pl' ? 'pl' : 'en';
+            const texts = loadingTexts[lang];
+            const textEl = document.getElementById('loader-text');
+
+            let textIndex = 0;
+            const interval = setInterval(() => {
+                textIndex = (textIndex + 1) % (texts.length - 1);
+                textEl.style.opacity = '0';
+                setTimeout(() => {
+                    textEl.innerText = texts[textIndex];
+                    textEl.style.opacity = '1';
+                }, 300);
+            }, 2000);
+
+            try {
+                // Pre-fetch critical data
+                const res = await barcaAPI.fetchAllData();
+
+                if (res.success) {
+                    const now = new Date();
+                    const todayStr = now.toISOString().split('T')[0];
+                    localStorage.setItem('last_load_date', todayStr);
+
+                    const matches = res.data.matches;
+                    const allMatches = [...matches.live, ...matches.upcoming, ...matches.finished];
+                    const todayMatch = allMatches.find(m => new Date(m.utcDate).toISOString().split('T')[0] === todayStr);
+
+                    if (todayMatch) {
+                        localStorage.setItem('current_match_status', todayMatch.status);
+                        localStorage.setItem('match_time', new Date(todayMatch.utcDate).getTime());
+                        if (todayMatch.status === 'FINISHED' || todayMatch.status === 'AWARDED') {
+                            localStorage.setItem('seen_after_match', 'true');
+                        } else {
+                            localStorage.setItem('seen_after_match', 'false');
+                        }
+                    } else {
+                        localStorage.removeItem('current_match_status');
+                        localStorage.removeItem('match_time');
+                        localStorage.setItem('seen_after_match', 'false');
+                    }
+                }
+
+                textEl.innerText = texts[texts.length - 1];
+                setTimeout(() => {
+                    window.location.href = 'overview.html';
+                }, 500);
+            } catch (error) {
+                console.error("Critical load error:", error);
+                textEl.innerText = "Connection Error. Retrying...";
+                setTimeout(startLoading, 3000);
+            }
+        }
+
+        startLoading();
+    </script>
+</body>
+
+</html>
