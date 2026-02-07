@@ -7,6 +7,13 @@ import { barcaSync } from './live/sync.js';
 import { barcaEvents } from './live/events.js';
 import { barcaAmbient } from './ui/ambient.js';
 import { barcaAnimations } from './ui/animations.js';
+// Suppress Tailwind CDN warnings
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+  originalWarn(...args);
+};
+
 import { updateDateDisplay } from './core/utils.js';
 
 // Import Legacy Scripts (Global scope is maintained via window object)

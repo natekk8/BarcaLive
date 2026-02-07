@@ -64,13 +64,7 @@ const Components = {
                     </button>
                 </div>
                 
-                <div class="setting-item">
-                    <span class="font-bold" data-i18n="language">Language</span>
-                    <button onclick="window.I18n.toggleLang()" class="pill-toggle">
-                        <div class="option ${window.I18n.currentLang === 'en' ? 'active' : ''}">EN</div>
-                        <div class="option ${window.I18n.currentLang === 'pl' ? 'active' : ''}">PL</div>
-                    </button>
-                </div>
+                <!-- Language Setting Removed -->
 
                 <div class="setting-item">
                     <span class="font-bold" data-i18n="theme">Theme</span>

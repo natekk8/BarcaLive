@@ -96,11 +96,13 @@ class DynamicIsland {
     }
 
     initDrag() {
-        let startX, startY, initialX, initialY;
-        let currentX = 0;
-        let currentY = 0;
+        let startX, startY;
+        let initialX = 0, initialY = 0;
+        let targetX = 0, targetY = 0;
+        let currentX = 0, currentY = 0;
+        let rafId = null;
 
-        // CSS Injection for Snap Classes
+        // CSS Injection for Snap & Blur
         const style = document.createElement('style');
         style.textContent = `
             .island-container {
@@ -109,77 +111,83 @@ class DynamicIsland {
                 left: 50%;
                 transform: translateX(-50%);
                 z-index: 9999;
-                transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Spring effect */
+                transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
                 touch-action: none;
+                will-change: transform, left, right;
             }
             .island-container.dragging {
-                transition: none; /* No transition while dragging */
+                transition: none;
+                cursor: grabbing;
+            }
+            .island-container.island-blur .island {
+                filter: blur(4px);
+                transform: scale(0.95);
+                transition: filter 0.2s, transform 0.2s;
             }
             
-            /* Snap Left: Anchor to left, grow right */
-            .island-container.snap-left {
-                left: 1rem;
-                transform: translateX(0);
-            }
+            /* Snap Left */
+            .island-container.snap-left { left: 1rem; transform: translateX(0); }
             .island-container.snap-left .island {
-                margin-left: 0 !important;
-                margin-right: auto !important;
+                margin-left: 0 !important; margin-right: auto !important;
                 transform-origin: top left;
             }
             
-            /* Snap Right: Anchor to right, grow left */
-            .island-container.snap-right {
-                left: auto;
-                right: 1rem;
-                transform: translateX(0);
-            }
+            /* Snap Right */
+            .island-container.snap-right { left: auto; right: 1rem; transform: translateX(0); }
             .island-container.snap-right .island {
-                margin-left: auto !important;
-                margin-right: 0 !important;
+                margin-left: auto !important; margin-right: 0 !important;
                 transform-origin: top right;
             }
 
-            /* Snap Center: Anchor to center, grow both ways */
-            .island-container.snap-center {
-                left: 50%;
-                transform: translateX(-50%);
-            }
+            /* Snap Center */
+            .island-container.snap-center { left: 50%; transform: translateX(-50%); }
              .island-container.snap-center .island {
-                margin-left: auto !important;
-                margin-right: auto !important;
+                margin-left: auto !important; margin-right: auto !important;
                 transform-origin: top center;
             }
         `;
         document.head.appendChild(style);
 
+        const updatePosition = () => {
+            if (!this.isDragging) return;
+
+            // Smooth Lerp (0.15 factor for "weight")
+            currentX += (targetX - currentX) * 0.15;
+            currentY += (targetY - currentY) * 0.15;
+
+            // Apply transform
+            this.container.style.transform = `translate(${currentX}px, ${currentY}px)`;
+
+            rafId = requestAnimationFrame(updatePosition);
+        };
+
         const onStart = (e) => {
-            if (this.islandInner.classList.contains('expanded')) return; // Disable drag when expanded? Or collapse? Let's disable for now.
-            // Actually user might want to move it even if expanded. But requirement says "moves island... then goes to nearest place". 
-            // Usually simpler to collapse on drag start.
+            if (this.islandInner.classList.contains('expanded')) return;
 
             this.isDragging = true;
-            this.container.classList.add('dragging');
+            this.container.classList.add('dragging', 'island-blur'); // Add blur
 
-            // Get current visual position
+            // Get current visual position (left/top)
             const rect = this.container.getBoundingClientRect();
             initialX = rect.left;
             initialY = rect.top;
 
+            // Mouse Start Pos
             startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
             startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
 
-            // We need to calculate offset relative to viewport to handle the "transform" removal during drag logic 
-            // (Since we are fighting CSS transforms)
-            // Strategy: Set fixed position to current xy, remove classes, manual update.
+            // Reset logic
+            targetX = 0; targetY = 0;
+            currentX = 0; currentY = 0;
 
-            // Simplified: Just modify transform, but we need to track cumulative delta if we are mixing classes.
-            // Better: On start, lock to current pixel coordinates.
+            // Lock container to current pixel position
             this.container.style.left = `${initialX}px`;
             this.container.style.top = `${initialY}px`;
-            this.container.style.transform = 'none';
-            this.container.style.right = 'auto'; // Clear right if set
-
+            this.container.style.transform = 'translate(0px, 0px)';
+            this.container.style.right = 'auto';
             this.container.classList.remove('snap-left', 'snap-right', 'snap-center');
+
+            rafId = requestAnimationFrame(updatePosition);
         };
 
         const onMove = (e) => {
@@ -189,32 +197,33 @@ class DynamicIsland {
             const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
             const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
 
-            const dx = clientX - startX;
-            const dy = clientY - startY;
-
-            this.container.style.transform = `translate(${dx}px, ${dy}px)`;
+            // Update Target
+            targetX = clientX - startX;
+            targetY = clientY - startY;
         };
 
         const onEnd = (e) => {
             if (!this.isDragging) return;
             this.isDragging = false;
-            this.justDragged = true; // Flag to prevent click
-            setTimeout(() => this.justDragged = false, 50);
+            if (rafId) cancelAnimationFrame(rafId);
 
-            this.container.classList.remove('dragging');
+            this.justDragged = true;
+            setTimeout(() => this.justDragged = false, 200); // Increased timeout
+
+            this.container.classList.remove('dragging', 'island-blur'); // Remove blur
 
             // Find drop position
             const rect = this.container.getBoundingClientRect();
             const centerX = rect.left + rect.width / 2;
             const screenW = window.innerWidth;
 
-            // Reset inline styles to allow classes to take over
+            // Reset styles
             this.container.style.left = '';
             this.container.style.top = '';
             this.container.style.right = '';
             this.container.style.transform = '';
 
-            // Logic: < 30% Left, > 70% Right, else Center. Top is always fixed.
+            // Logic: < 30% Left, > 70% Right
             if (centerX < screenW * 0.3) {
                 this.setSnap('left');
             } else if (centerX > screenW * 0.7) {
