@@ -638,6 +638,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
                           data-name="${match.competition.name}"
                           alt="${match.competition.name} Logo"
                           width="56" height="56"
+                          fetchpriority="high"
                           onerror="this.style.display='none'" 
                           title="${match.competition.name}">
                  </div>
@@ -655,7 +656,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
                              alt="${match.homeTeam.name || match.homeTeam.shortName} Crest"
                              class="w-12 md:w-20 object-contain" 
                              width="80" height="80"
-                             loading="lazy" 
+                             fetchpriority="high"
                              referrerpolicy="no-referrer" 
                              onerror="handleLogoError(this)">
                     </div>
@@ -682,7 +683,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
                              alt="${match.awayTeam.name || match.awayTeam.shortName} Crest"
                              class="w-12 md:w-20 object-contain" 
                              width="80" height="80"
-                             loading="lazy" 
+                             fetchpriority="high"
                              referrerpolicy="no-referrer" 
                              onerror="handleLogoError(this)">
                     </div>
@@ -718,7 +719,12 @@ function renderRecentForm(matches) {
             <div class="flex items-center justify-between border-b border-white/5 pb-3 last:border-0 hover:bg-white/5 p-2 rounded-lg transition-colors" 
                  style="animation: slideUp 0.4s ease forwards; animation-delay: ${index * 100}ms; opacity: 0;">
                 <div class="flex items-center gap-3">
-                    <img src="${getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" data-name="${opponent.name || opponent.shortName}" class="w-6 h-6 object-contain" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
+                    <img src="${getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" 
+                         data-name="${opponent.name || opponent.shortName}" 
+                         alt="${opponent.name || opponent.shortName} Crest"
+                         class="w-6 h-6 object-contain" 
+                         width="24" height="24"
+                         loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
                     <span class="text-sm font-medium opacity-80">vs ${opponent.shortName}</span>
                 </div>
                 <span class="${resultColor} font-bold text-sm">${result} <span class="opacity-50 ml-1 text-xs">${winLabel}</span></span>
@@ -865,7 +871,7 @@ async function renderFootballTable(container, tableData, competitionType = 'leag
                 <td class="font-black text-xs ${posClass}">${position}</td>
                 <td>
                     <div class="flex items-center gap-3 py-1">
-                        ${crest ? `<img src="${crest}" data-name="${name}" class="w-7 h-7 object-contain" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">` : ''}
+                        ${crest ? `<img src="${crest}" data-name="${name}" alt="${name} Crest" class="w-7 h-7 object-contain" width="28" height="28" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">` : ''}
                         <span class="font-bold ${isBarca ? 'text-gold' : ''} text-xs md:text-base">${name}</span>
                     </div>
                 </td>
@@ -961,7 +967,12 @@ function renderScheduleList(type) {
                 
                 <!-- iOS Notification Icon Style -->
                 <div class="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10 shrink-0">
-                    <img src="${getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" data-name="${opponent.name || opponent.shortName}" class="w-8 h-8 object-contain" loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
+                    <img src="${getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" 
+                         data-name="${opponent.name || opponent.shortName}" 
+                         alt="${opponent.name || opponent.shortName} Crest"
+                         class="w-8 h-8 object-contain" 
+                         width="32" height="32"
+                         loading="lazy" referrerpolicy="no-referrer" onerror="handleLogoError(this)">
                 </div>
 
                 
@@ -970,7 +981,7 @@ function renderScheduleList(type) {
                         <h4 class="font-bold text-sm truncate flex items-center gap-1.5">
                             vs ${opponent.shortName}
                         </h4>
-                        <span class="text-[9px] font-black opacity-40 uppercase tracking-widest text-right">
+                        <span class="text-[9px] font-black text-white/70 uppercase tracking-widest text-right">
                             ${m.competition.name || m.competition.code}
                             ${(() => {
                 if (m.currentRound) {
