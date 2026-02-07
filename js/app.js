@@ -646,22 +646,22 @@ function renderNextMatch(match, isLive = false, standings = []) {
             </div>
 
             <!-- MOBILE ONLY: Hybrid Header Row (Badge Left, Round Info Right) -->
-            <div class="flex md:hidden justify-between items-center w-full mb-4 px-1">
+            <div class="flex md:hidden justify-between items-start w-full mb-4 px-1 gap-4">
                  <!-- Badge -->
                  ${isLive ? `
-                <span class="inline-flex items-center gap-1.5 bg-red-500 text-white live-badge px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg">
+                <span class="inline-flex items-center gap-1.5 bg-red-500 text-white live-badge px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                     LIVE
                 </span>
                  ` : `
-                <span style="background: rgba(237, 187, 0, 0.15); color: var(--gold);" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-gold/30">
+                <span style="background: rgba(237, 187, 0, 0.15); color: var(--gold);" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest border border-gold/30 shrink-0">
                     <span class="w-1 h-1 rounded-full bg-gold animate-pulse"></span>
                     ${t('nextMatch') || 'Następny'}
                 </span>
                  `}
 
                  <!-- Round Info -->
-                 ${metaInfo ? `<div class="text-[9px] font-bold opacity-60 uppercase tracking-wider text-right max-w-[50%] leading-tight">${metaInfo}</div>` : ''}
+                 ${metaInfo ? `<div class="text-[9px] font-bold opacity-60 uppercase tracking-wider text-right leading-tight break-words max-w-[60%]">${metaInfo}</div>` : ''}
             </div>
 
             <!-- MOBILE ONLY: Centered Competition Logo -->
@@ -919,6 +919,25 @@ async function renderFootballTable(container, tableData, competitionType = 'leag
         `;
     }).join('');
     html += `</tbody></table></div>`;
+
+    // Add Legend
+    html += `
+        <div class="flex flex-wrap gap-4 mt-6 px-2 justify-center md:justify-start">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-[#3b82f6]"></div>
+                <span class="text-[10px] uppercase font-bold opacity-60">Liga Mistrzów</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-[#f97316]"></div>
+                <span class="text-[10px] uppercase font-bold opacity-60">Liga Europy</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-[#ef4444]"></div>
+                <span class="text-[10px] uppercase font-bold opacity-60">Spadek</span>
+            </div>
+        </div>
+    `;
+
     container.innerHTML = html;
 }
 
