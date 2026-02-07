@@ -26,19 +26,15 @@ export const CONFIG = {
   FEATURE_FLAGS: {
     skeletonLoading: true,
     autoReconnect: true
-  },
-  SUPABASE: {
-    URL: "https://your-project.supabase.co",
-    KEY: "your-publishable-key"
   }
 };
 
 /**
  * Backward compatibility: SB_ANON_KEY is an alias for SB_PUBLISHABLE_KEY
  */
-export const SB_PROJECT_URL = CONFIG.SUPABASE.URL;
-export const SB_PUBLISHABLE_KEY = CONFIG.SUPABASE.KEY;
-export const SB_ANON_KEY = CONFIG.SUPABASE.KEY;
+export const SB_PROJECT_URL = CONFIG.SUPABASE.url;
+export const SB_PUBLISHABLE_KEY = CONFIG.SUPABASE.anonKey;
+export const SB_ANON_KEY = CONFIG.SUPABASE.anonKey;
 
 // Expose to window for legacy scripts
 if (typeof window !== 'undefined') {
