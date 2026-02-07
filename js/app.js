@@ -612,11 +612,11 @@ function renderNextMatch(match, isLive = false, standings = []) {
     const metaInfo = metaInfoParts.join(' • ');
 
     container.innerHTML = `
-        <div class="flex flex-col items-center w-full relative" style="padding-top: 5rem;"> <!-- Increased padding (4rem -> 5rem) -->
+        <div class="flex flex-col items-center w-full relative pt-4 md:pt-20"> <!-- Resetted padding logic -->
             <!-- DESKTOP ONLY: Competition Logo Tile (Floating Top Center - Lowered) -->
             <div class="hidden md:flex absolute -top-4 left-0 right-0 mx-auto w-fit z-20 justify-center pointer-events-none">
                  <div class="w-20 h-20 bg-white/5 rounded-[28px] flex items-center justify-center border border-white/10 shadow-xl backdrop-blur-md pointer-events-auto">
-                     <img src="${compLogo}" class="w-14 h-14 object-contain filter drop-shadow-md theme-logo" 
+                     <img src="${compLogo}" class="w-14 h-14 object-contain filter drop-shadow-md theme-logo no-animate" 
                           data-code="${match.competition.code}" 
                           data-name="${match.competition.name}"
                           alt="${match.competition.name} Logo"
@@ -645,9 +645,9 @@ function renderNextMatch(match, isLive = false, standings = []) {
                  `}
             </div>
 
-            <!-- MOBILE ONLY: Hybrid Header Row (Badge Left, Round Info Right) -->
-            <div class="flex md:hidden flex-col items-center w-full mb-8 px-1 gap-2">
-                 <!-- Badge (Centered) -->
+            <!-- MOBILE ONLY: Vertical Stack (Badge -> Logo -> Info) -->
+            <div class="flex md:hidden flex-col items-center w-full mb-6 gap-3">
+                 <!-- Badge -->
                  ${isLive ? `
                 <span class="inline-flex items-center gap-1.5 bg-red-500 text-white live-badge px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shrink-0">
                     <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
@@ -660,32 +660,30 @@ function renderNextMatch(match, isLive = false, standings = []) {
                 </span>
                  `}
 
-                 <!-- Round Info (Centered below badge) -->
-                 ${metaInfo ? `<div class="text-[10px] font-bold opacity-60 uppercase tracking-wider text-center leading-tight break-words max-w-[80%] mt-1">${metaInfo}</div>` : ''}
-            </div>
-
-            <!-- MOBILE ONLY: Centered Competition Logo -->
-            <div class="flex md:hidden justify-center mb-6 -mt-2">
-                 <div class="w-14 h-14 bg-white/5 rounded-[18px] flex items-center justify-center border border-white/10 shadow-lg backdrop-blur-md">
-                     <img src="${compLogo}" class="w-9 h-9 object-contain filter drop-shadow-md theme-logo" 
+                 <!-- Competition Logo -->
+                 <div class="w-14 h-14 bg-white/5 rounded-[18px] flex items-center justify-center border border-white/10 shadow-lg backdrop-blur-md my-1">
+                     <img src="${compLogo}" class="w-9 h-9 object-contain filter drop-shadow-md theme-logo no-animate" 
                           data-code="${match.competition.code}" 
                           alt="${match.competition.name} Logo"
                           width="36" height="36"
                           fetchpriority="high"
                           onerror="this.style.display='none'">
                  </div>
+
+                 <!-- Round Info -->
+                 ${metaInfo ? `<div class="text-[10px] font-bold opacity-60 uppercase tracking-wider text-center leading-tight break-words max-w-[90%]">${metaInfo}</div>` : ''}
             </div>
 
 
-
-            <div class="flex flex-col md:flex-row items-center gap-6 md:gap-16 animate-in w-full justify-center pt-2 md:pt-8">
+            <!-- TEAMS DISPLAY (Matches Desktop Layout mostly) -->
+            <div class="flex flex-col md:flex-row items-center gap-4 md:gap-16 w-full justify-center">
                 <div class="text-center relative group">
                     <div class="w-20 h-20 md:w-32 md:h-32 bg-white/5 rounded-[24px] md:rounded-[40px] flex items-center justify-center border border-white/10 mb-3 mx-auto shadow-xl transition-all hover:scale-105"
                          style="box-shadow: 0 0 30px ${homeColor}20;"> <!-- Dynamic Shadow -->
                         <img src="${getTeamCrest(match.homeTeam.name || match.homeTeam.shortName, match.homeTeam.crest)}" 
                              data-name="${match.homeTeam.name || match.homeTeam.shortName}" 
                              alt="${match.homeTeam.name || match.homeTeam.shortName} Crest"
-                             class="w-16 md:w-20 object-contain" 
+                             class="w-16 md:w-20 object-contain no-animate" 
                              width="80" height="80"
                              fetchpriority="high"
                              referrerpolicy="no-referrer" 
@@ -698,9 +696,12 @@ function renderNextMatch(match, isLive = false, standings = []) {
                 </div>
 
                 <div class="flex flex-col items-center -mt-2 md:mt-0">
-                     <!-- Competition Name Only (Logo moved to top) -->
-                     <div class="flex flex-col items-center mb-1 gap-1 opacity-80">
-                        <span class="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center max-w-[120px] leading-tight text-gold">${t(match.competition.name) || match.competition.name}</span>
+                     <!-- Competition Name Only (Logo moved above for mobile) -->
+                     <div class="flex flex-col items-center mb-1 gap-1 opacity-80 md:hidden">
+                        <span class="text-[8px] font-black uppercase tracking-widest text-center max-w-[120px] leading-tight text-gold">${t(match.competition.name) || match.competition.name}</span>
+                     </div>
+                     <div class="hidden md:flex flex-col items-center mb-1 gap-1 opacity-80">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-center max-w-[120px] leading-tight text-gold">${t(match.competition.name) || match.competition.name}</span>
                      </div>
 
                      <span class="text-[2.5rem] md:text-[3.5rem] font-black tracking-tighter leading-none ${isLive ? 'text-red-500' : ''}">${mainDisplay}</span>
@@ -712,7 +713,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
                         <img src="${getTeamCrest(match.awayTeam.name || match.awayTeam.shortName, match.awayTeam.crest)}" 
                              data-name="${match.awayTeam.name || match.awayTeam.shortName}" 
                              alt="${match.awayTeam.name || match.awayTeam.shortName} Crest"
-                             class="w-16 md:w-20 object-contain" 
+                             class="w-16 md:w-20 object-contain no-animate" 
                              width="80" height="80"
                              fetchpriority="high"
                              referrerpolicy="no-referrer" 
