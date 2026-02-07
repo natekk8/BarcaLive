@@ -716,8 +716,8 @@ function renderRecentForm(matches) {
         const winLabel = barcaScore > oppScore ? 'W' : (barcaScore < oppScore ? 'L' : 'D');
 
         return `
-            <div class="flex items-center justify-between border-b border-white/5 pb-3 last:border-0 hover:bg-white/5 p-2 rounded-lg transition-colors" 
-                 style="animation: slideUp 0.4s ease forwards; animation-delay: ${index * 100}ms; opacity: 0;">
+            <div class="flex items-center justify-between border-b border-white/5 pb-3 last:border-0 hover:bg-white/5 p-2 rounded-lg transition-colors animate-in" 
+                 style="animation-delay: ${index * 100}ms;">
                 <div class="flex items-center gap-3">
                     <img src="${getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" 
                          data-name="${opponent.name || opponent.shortName}" 
