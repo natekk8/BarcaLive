@@ -32,15 +32,12 @@ class DynamicIsland {
 
     async setup() {
         this.island = document.getElementById('dynamic-island');
-        if (!this.island) {
-            console.warn('Dynamic Island markup not found');
-            return;
-        }
+        if (!this.island) return;
 
-        // Create inner structure if missing
+        // Structure
         this.island.innerHTML = `
-            <div class="island-container">
-                <div id="dynamicIslandInner" class="island" onclick="window.dynamicIsland.toggle()">
+            <div id="islandContainer" class="island-container snap-center">
+                <div id="dynamicIslandInner" class="island">
                     <div id="islandContent" class="flex items-center justify-center w-full h-full">
                         <div id="islandIdle" class="w-full flex justify-center items-center">
                             <div class="w-12 h-1 bg-white/20 rounded-full"></div>
@@ -52,11 +49,21 @@ class DynamicIsland {
             </div>
         `;
 
+        this.container = document.getElementById('islandContainer');
         this.expanded = document.getElementById('islandExpanded');
         this.idle = document.getElementById('islandIdle');
         this.islandInner = document.getElementById('dynamicIslandInner');
 
+        // Click wrapper to prevent toggle on drag
+        this.islandInner.addEventListener('click', (e) => {
+            if (!this.isDragging && !this.justDragged) {
+                this.toggle();
+            }
+            this.justDragged = false;
+        });
+
         this.showOnboarding();
+        this.initDrag();
 
         // Restore state
         const isExpanded = sessionStorage.getItem('bp_island_expanded') === 'true';
@@ -71,14 +78,12 @@ class DynamicIsland {
             this.processMatches(matches);
         });
 
-        // Task: Render immediately if cache exists
         const cachedMatches = barcaAPI._cache.get('allData');
         if (cachedMatches && cachedMatches.data) {
             const matches = [...cachedMatches.data.matches.live, ...cachedMatches.data.matches.upcoming, ...cachedMatches.data.matches.finished];
             this.processMatches(matches);
         }
 
-        // Bug 3/4: Listen for language changes and update immediately
         window.addEventListener('langChanged', () => {
             if (this.data) this.render();
         });
@@ -88,6 +93,157 @@ class DynamicIsland {
                 this.islandInner.classList.add('is-live');
             }
         });
+    }
+
+    initDrag() {
+        let startX, startY, initialX, initialY;
+        let currentX = 0;
+        let currentY = 0;
+
+        // CSS Injection for Snap Classes
+        const style = document.createElement('style');
+        style.textContent = `
+            .island-container {
+                position: fixed;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); /* Spring effect */
+                touch-action: none;
+            }
+            .island-container.dragging {
+                transition: none; /* No transition while dragging */
+            }
+            
+            /* Snap Left: Anchor to left, grow right */
+            .island-container.snap-left {
+                left: 1rem;
+                transform: translateX(0);
+            }
+            .island-container.snap-left .island {
+                margin-left: 0 !important;
+                margin-right: auto !important;
+                transform-origin: top left;
+            }
+            
+            /* Snap Right: Anchor to right, grow left */
+            .island-container.snap-right {
+                left: auto;
+                right: 1rem;
+                transform: translateX(0);
+            }
+            .island-container.snap-right .island {
+                margin-left: auto !important;
+                margin-right: 0 !important;
+                transform-origin: top right;
+            }
+
+            /* Snap Center: Anchor to center, grow both ways */
+            .island-container.snap-center {
+                left: 50%;
+                transform: translateX(-50%);
+            }
+             .island-container.snap-center .island {
+                margin-left: auto !important;
+                margin-right: auto !important;
+                transform-origin: top center;
+            }
+        `;
+        document.head.appendChild(style);
+
+        const onStart = (e) => {
+            if (this.islandInner.classList.contains('expanded')) return; // Disable drag when expanded? Or collapse? Let's disable for now.
+            // Actually user might want to move it even if expanded. But requirement says "moves island... then goes to nearest place". 
+            // Usually simpler to collapse on drag start.
+
+            this.isDragging = true;
+            this.container.classList.add('dragging');
+
+            // Get current visual position
+            const rect = this.container.getBoundingClientRect();
+            initialX = rect.left;
+            initialY = rect.top;
+
+            startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+            // We need to calculate offset relative to viewport to handle the "transform" removal during drag logic 
+            // (Since we are fighting CSS transforms)
+            // Strategy: Set fixed position to current xy, remove classes, manual update.
+
+            // Simplified: Just modify transform, but we need to track cumulative delta if we are mixing classes.
+            // Better: On start, lock to current pixel coordinates.
+            this.container.style.left = `${initialX}px`;
+            this.container.style.top = `${initialY}px`;
+            this.container.style.transform = 'none';
+            this.container.style.right = 'auto'; // Clear right if set
+
+            this.container.classList.remove('snap-left', 'snap-right', 'snap-center');
+        };
+
+        const onMove = (e) => {
+            if (!this.isDragging) return;
+            e.preventDefault();
+
+            const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+            const dx = clientX - startX;
+            const dy = clientY - startY;
+
+            this.container.style.transform = `translate(${dx}px, ${dy}px)`;
+        };
+
+        const onEnd = (e) => {
+            if (!this.isDragging) return;
+            this.isDragging = false;
+            this.justDragged = true; // Flag to prevent click
+            setTimeout(() => this.justDragged = false, 50);
+
+            this.container.classList.remove('dragging');
+
+            // Find drop position
+            const rect = this.container.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const screenW = window.innerWidth;
+
+            // Reset inline styles to allow classes to take over
+            this.container.style.left = '';
+            this.container.style.top = '';
+            this.container.style.right = '';
+            this.container.style.transform = '';
+
+            // Logic: < 30% Left, > 70% Right, else Center. Top is always fixed.
+            if (centerX < screenW * 0.3) {
+                this.setSnap('left');
+            } else if (centerX > screenW * 0.7) {
+                this.setSnap('right');
+            } else {
+                this.setSnap('center');
+            }
+        };
+
+        this.container.addEventListener('mousedown', onStart);
+        this.container.addEventListener('touchstart', onStart, { passive: false });
+
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('touchmove', onMove, { passive: false });
+
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchend', onEnd);
+    }
+
+    setSnap(position) {
+        this.container.classList.remove('snap-left', 'snap-center', 'snap-right');
+        this.container.classList.add(`snap-${position}`);
+        this.currentSnap = position;
+        localStorage.setItem('bp_island_pos', position); // Save preference
+    }
+
+    restoreSnap() {
+        const saved = localStorage.getItem('bp_island_pos') || 'center';
+        this.setSnap(saved);
     }
 
     processMatches(matches) {
@@ -127,6 +283,11 @@ class DynamicIsland {
 
 
     render(isLive = false) {
+        if (!this._snapRestored) {
+            this.restoreSnap();
+            this._snapRestored = true;
+        }
+
         if (!this.expanded || !this.islandInner) return;
 
         // Don't overwrite onboarding if it's currently active
@@ -136,7 +297,17 @@ class DynamicIsland {
 
         if (isLive) {
             const liveMatch = this.data;
-            const minute = formatMatchTime(liveMatch.utcDate);
+
+            // Use API minute if available, else calc
+            let minute = '';
+            if (liveMatch.minute) {
+                // If minute is 45 or 90+ and status is BREAK/HALFTIME, maybe show HT? 
+                // But usually API minute is accurate (e.g. "45+2'" or "HT"). 
+                // We'll trust API string or number.
+                minute = String(liveMatch.minute).includes("'") ? liveMatch.minute : liveMatch.minute + "'";
+            } else {
+                minute = formatMatchTime(liveMatch.utcDate);
+            }
 
             const isHome = liveMatch.homeTeam.id === this.BARCA_ID;
             const barcaScore = isHome ? (liveMatch.score.fullTime.home || 0) : (liveMatch.score.fullTime.away || 0);
@@ -147,36 +318,64 @@ class DynamicIsland {
             else if (barcaScore < oppScore) bgClass = "bg-live-loss";
             else bgClass = "bg-live-draw";
 
-            this.islandInner.className = `island is-live ${bgClass} ${this.islandInner.classList.contains('expanded') ? 'expanded' : ''}`;
+            // Only update class if changed
+            const newClassName = `island is-live ${bgClass} ${this.islandInner.classList.contains('expanded') ? 'expanded' : ''}`;
+            if (this.islandInner.className !== newClassName) {
+                this.islandInner.className = newClassName;
+            }
 
             const score = `${liveMatch.score.fullTime.home ?? 0} - ${liveMatch.score.fullTime.away ?? 0}`;
+            const competition = liveMatch.competition?.name || ''; // "Details in the middle"
 
-            // Idle state: Show SCORE instead of minute
-            this.idle.innerHTML = `
+            // Idle content
+            const newIdleHTML = `
                 <div class="flex items-center gap-1.5 px-3">
-                    <span class="text-[10px] font-black">${score}</span>
+                    <span class="text-[10px] font-black tracking-tighter">${score}</span>
                     <div class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
                 </div>
             `;
+            if (this.idle.innerHTML !== newIdleHTML) this.idle.innerHTML = newIdleHTML;
 
-            // Expanded state: Show SCORE and MINUTE
-            this.expanded.innerHTML = `
-                <div class="flex items-center justify-between w-full h-full px-5">
-                    <img src="${window.getTeamCrest(liveMatch.homeTeam.name || liveMatch.homeTeam.shortName, liveMatch.homeTeam.crest)}" data-name="${liveMatch.homeTeam.name || liveMatch.homeTeam.shortName}" class="w-10 h-10 object-contain drop-shadow-md transition-transform hover:scale-110" onerror="window.handleLogoError && window.handleLogoError(this)">
-                    <div class="flex flex-col items-center">
-                        <span class="text-lg font-black tracking-tighter">${score}</span>
-                        <span class="text-[9px] uppercase font-black opacity-60">${minute}</span>
+            // Expanded content with details
+            const newExpandedHTML = `
+                <div class="flex items-center justify-between w-full h-full px-5 relative">
+                     <!-- Competition Detail -->
+                    <div class="absolute top-1 left-0 right-0 text-center opacity-40">
+                         <span class="text-[8px] font-black uppercase tracking-widest">${competition}</span>
                     </div>
-                    <img src="${window.getTeamCrest(liveMatch.awayTeam.name || liveMatch.awayTeam.shortName, liveMatch.awayTeam.crest)}" data-name="${liveMatch.awayTeam.name || liveMatch.awayTeam.shortName}" class="w-10 h-10 object-contain drop-shadow-md transition-transform hover:scale-110" onerror="window.handleLogoError && window.handleLogoError(this)">
+
+                    <div class="flex flex-col items-center gap-1">
+                        <img src="${window.getTeamCrest(liveMatch.homeTeam.name || liveMatch.homeTeam.shortName, liveMatch.homeTeam.crest)}" data-name="${liveMatch.homeTeam.name || liveMatch.homeTeam.shortName}" class="w-8 h-8 object-contain drop-shadow-md" onerror="window.handleLogoError && window.handleLogoError(this)">
+                        <span class="text-[10px] font-bold leading-none text-white/90">${liveMatch.homeTeam.displayCode || liveMatch.homeTeam.shortName.substring(0, 3)}</span>
+                    </div>
+
+                    <div class="flex flex-col items-center mt-2">
+                        <span class="text-2xl font-black tracking-tighter leading-none">${score}</span>
+                        <span class="text-[10px] uppercase font-bold text-red-500 animate-pulse mt-0.5">${minute}</span>
+                    </div>
+
+                    <div class="flex flex-col items-center gap-1">
+                        <img src="${window.getTeamCrest(liveMatch.awayTeam.name || liveMatch.awayTeam.shortName, liveMatch.awayTeam.crest)}" data-name="${liveMatch.awayTeam.name || liveMatch.awayTeam.shortName}" class="w-8 h-8 object-contain drop-shadow-md" onerror="window.handleLogoError && window.handleLogoError(this)">
+                        <span class="text-[10px] font-bold leading-none text-white/90">${liveMatch.awayTeam.displayCode || liveMatch.awayTeam.shortName.substring(0, 3)}</span>
+                    </div>
                 </div>
             `;
+            if (this.expanded.innerHTML !== newExpandedHTML) this.expanded.innerHTML = newExpandedHTML;
+
             this.islandInner.style.boxShadow = "0 8px 30px rgba(0,0,0,0.4)";
+
         } else if (this.data) {
+            // ... (Upcoming logic - update to avoid flicker too)
             const nextMatch = this.data;
             this.islandInner.classList.remove('is-live');
-            this.islandInner.className = `island ${this.islandInner.classList.contains('expanded') ? 'expanded' : ''}`;
+            const newClassName = `island ${this.islandInner.classList.contains('expanded') ? 'expanded' : ''}`;
+            if (this.islandInner.className !== newClassName) {
+                this.islandInner.className = newClassName;
+            }
             this.islandInner.style.background = "";
-            this.idle.innerHTML = `<div class="w-12 h-1 bg-white/20 rounded-full"></div>`;
+
+            const idleHTML = `<div class="w-12 h-1 bg-white/20 rounded-full"></div>`;
+            if (this.idle.innerHTML !== idleHTML) this.idle.innerHTML = idleHTML;
 
             const isHome = nextMatch.homeTeam.id === this.BARCA_ID;
             const opponent = isHome ? nextMatch.awayTeam : nextMatch.homeTeam;
@@ -186,15 +385,20 @@ class DynamicIsland {
             const isTbd = nextMatch.status === 'SCHEDULED' && (utcH === 0 || utcH === 1 || utcH === 2);
             const time = isTbd ? this.t('tbd') : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            this.expanded.innerHTML = `
+            const expandedHTML = `
                 <div class="flex items-center justify-between w-full h-full px-4">
                     <div class="flex flex-col justify-center">
-                        <span class="text-[10px] uppercase font-black text-gold opacity-80 letter-spacing-widest">${this.t('upcoming')}</span>
-                        <span class="text-sm font-bold leading-tight line-clamp-1 truncate w-40">${this.t('vs')} ${opponent.shortName}</span>
+                        <span class="text-[9px] uppercase font-black text-gold opacity-80 tracking-widest mb-0.5">${this.t('upcoming')}</span>
+                        <div class="flex items-center gap-2">
+                             <img src="${window.getTeamCrest(opponent.name || opponent.shortName, opponent.crest)}" class="w-4 h-4 object-contain opacity-80">
+                             <span class="text-sm font-bold leading-tight line-clamp-1 truncate">${opponent.shortName}</span>
+                        </div>
                     </div>
-                    <span class="text-xs font-black bg-white/10 px-2 py-1.5 rounded-xl border border-white/5">${time}</span>
+                    <span class="text-xs font-black bg-white/10 px-2 py-1.5 rounded-lg border border-white/5 font-mono">${time}</span>
                 </div>
             `;
+            if (this.expanded.innerHTML !== expandedHTML) this.expanded.innerHTML = expandedHTML;
+
             this.islandInner.style.boxShadow = "";
         }
     }

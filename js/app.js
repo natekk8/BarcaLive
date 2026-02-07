@@ -487,8 +487,39 @@ function renderNextMatch(match, isLive = false, standings = []) {
         return null;
     };
 
-    const homePos = getPosition(match.homeTeam.id, match.homeTeam.name || match.homeTeam.shortName, match.homeTeam.competitionPosition);
-    const awayPos = getPosition(match.awayTeam.id, match.awayTeam.name || match.awayTeam.shortName, match.awayTeam.competitionPosition);
+    // Logic for Smart Positions
+    const shouldShowPosition = (match) => {
+        const comp = match.competition.code || match.competition.name;
+        const stage = match.stageName || '';
+
+        // Always show for La Liga (PD)
+        if (comp === 'PD' || comp === 'PFL' || match.competition.name.includes('La Liga')) return true;
+
+        // Show for Champions League ONLY if League Phase
+        if (comp === 'CL' || match.competition.name.includes('Champions') || match.competition.name.includes('Mistrzów')) {
+            if (stage.includes('League') || stage.includes('Ligowa') || stage.includes('Regular')) return true;
+            return false;
+        }
+
+        // Default to false for Cups (Copa del Rey, Supercopa)
+        return false;
+    };
+
+    const showPos = shouldShowPosition(match);
+    const homePos = showPos ? getPosition(match.homeTeam.id, match.homeTeam.name || match.homeTeam.shortName, match.homeTeam.competitionPosition) : null;
+    const awayPos = showPos ? getPosition(match.awayTeam.id, match.awayTeam.name || match.awayTeam.shortName, match.awayTeam.competitionPosition) : null;
+
+
+    // Competition Logo Logic
+    const getCompLogo = (code, name) => {
+        const baseUrl = 'https://bwmkvehxzcdzdxiqdqin.supabase.co/storage/v1/object/public/logos/competition';
+        if (code === 'PD' || name.includes('La Liga') || name.includes('Primera')) return `${baseUrl}/pd.png`;
+        if (code === 'CL' || name.includes('Champions') || name.includes('Mistrz')) return `${baseUrl}/cl.png`;
+        if (code === 'CDR' || name.includes('Copa del Rey') || name.includes('Puchar')) return `${baseUrl}/cdr.png`;
+        if (code === 'SC' || name.includes('Supercopa') || name.includes('Superpuchar')) return `${baseUrl}/scde.png`;
+        return `https://crests.football-data.org/${code}.png`; // Fallback
+    };
+    const compLogo = getCompLogo(match.competition.code, match.competition.name);
 
 
     // Logic for Time/Score and Date/Minute
@@ -502,7 +533,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
 
         // Calculate minute using API or same logic as formatMatchTime
         if (match.minute) {
-            subDisplay = match.minute + "'";
+            subDisplay = String(match.minute).includes("'") ? match.minute : match.minute + "'";
         } else {
             const start = new Date(match.utcDate);
             const now = new Date();
@@ -579,7 +610,7 @@ function renderNextMatch(match, isLive = false, standings = []) {
             `}
 
             <!-- Meta Info (Round / Referee / Venue) -->
-            ${metaInfo ? `<div class="absolute top-2 right-0 text-[9px] md:text-[10px] font-bold opacity-40 uppercase tracking-wider text-right max-w-[60%] leading-tight">${metaInfo}</div>` : ''}
+            ${metaInfo ? `<div class="absolute top-2 right-0 text-[8px] md:text-[9px] font-bold opacity-40 uppercase tracking-wider text-right max-w-[60%] leading-tight">${metaInfo}</div>` : ''}
 
             <div class="flex flex-col md:flex-row items-center gap-6 md:gap-16 animate-in w-full justify-center pt-8">
                 <div class="text-center relative group">
@@ -589,16 +620,19 @@ function renderNextMatch(match, isLive = false, standings = []) {
                     </div>
                     <h3 class="font-bold text-xs md:text-xl flex items-center justify-center gap-2">
                         ${match.homeTeam.shortName}
-                        ${homePos ? `<span class="bg-white/10 text-[9px] px-1.5 py-0.5 rounded text-white/60 font-mono" title="Pozycja w lidze">#${homePos}</span>` : ''}
+                        
                     </h3>
                 </div>
 
-                <div class="flex flex-col items-center">
+                <div class="flex flex-col items-center -mt-2 md:mt-0">
+                     <!-- Competition Logo & Name Above Time -->
+                     <div class="flex flex-col items-center mb-2 gap-1 opacity-80">
+                        <img src="${compLogo}" class="w-6 h-6 md:w-8 md:h-8 object-contain filter drop-shadow opacity-90" onerror="this.style.display='none'">
+                        <span class="text-[8px] md:text-[10px] font-black uppercase tracking-widest text-center max-w-[120px] leading-tight text-gold">${t(match.competition.name) || match.competition.name}</span>
+                     </div>
+
                      <span class="text-[2.5rem] md:text-[3.5rem] font-black tracking-tighter leading-none ${isLive ? 'text-red-500' : ''}">${mainDisplay}</span>
                      <span class="text-[10px] md:text-sm font-bold ${isLive ? 'text-gold' : 'opacity-50'} uppercase tracking-widest mt-2 whitespace-nowrap" ${isLive ? 'data-live-minute' : ''}>${subDisplay}</span>
-                     <div class="mt-4 px-3 md:px-4 py-1.5 bg-white/10 rounded-full text-[8px] md:text-[10px] font-black uppercase tracking-widest border border-white/5">
-                        ${t(match.competition.name) || match.competition.name}
-                     </div>
                 </div>
 
                 <div class="text-center relative group">
@@ -887,7 +921,6 @@ function renderScheduleList(type) {
                     <div class="flex justify-between items-start mb-0.5">
                         <h4 class="font-bold text-sm truncate flex items-center gap-1.5">
                             vs ${opponent.shortName}
-                            ${opponent.competitionPosition ? `<span class="bg-white/10 text-[9px] px-1.5 py-0.5 rounded text-white/60 font-mono">#${opponent.competitionPosition}</span>` : ''}
                         </h4>
                         <span class="text-[9px] font-black opacity-40 uppercase tracking-widest text-right">
                             ${m.competition.name || m.competition.code}
@@ -946,7 +979,13 @@ function renderTransmissions(channels) {
     if (!container) return;
 
     if (!channels || channels.length === 0) {
-        container.innerHTML = `<div class="text-center opacity-40 text-xs py-2">No transmission info</div>`;
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-8 opacity-40">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+                </svg>
+                <span class="text-xs font-bold uppercase tracking-widest">Brak informacji o transmisji</span>
+            </div>`;
         return;
     }
 

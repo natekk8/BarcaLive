@@ -15,97 +15,128 @@ import '../../js/components.js';
 import '../../js/api.js';
 import '../../js/app.js';
 
+// Notification Helper
+const sendNotification = (title, body) => {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon: '/assets/favicons/android-chrome-192x192.png',
+      badge: '/assets/favicons/favicon-32x32.png',
+      vibrate: [200, 100, 200]
+    });
+  }
+};
+
 /**
  * BarcaLive SPA Entry Point
  * Orchestrates the initialization of all modules.
  */
 const initSPA = () => {
   // Initialize language as early as possible to prevent flicker
-  if (window.I18n) {
-    window.I18n.init();
+  window.I18n.init();
+}
+
+// Request Notification Permission
+if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+  Notification.requestPermission();
+}
+
+// Expose core instances to window for legacy scripts/debugging immediately
+window.barcaState = barcaState;
+window.barcaAPI = barcaAPI;
+window.barcaRouter = barcaRouter;
+window.barcaPrefetch = barcaPrefetch;
+window.barcaAmbient = barcaAmbient;
+window.barcaAnimations = barcaAnimations;
+
+
+try {
+  // 1. Initialize Prefetch
+  barcaPrefetch.init();
+  barcaPrefetch.warmup([
+    '/overview.html',
+    '/schedule.html',
+    '/results.html',
+    '/la-liga.html',
+    '/ucl.html'
+  ]);
+
+  // 2. Initialize Router
+  barcaRouter.init();
+  updateDateDisplay();
+  window.addEventListener('langChanged', () => updateDateDisplay());
+
+  // 3. Dynamic Island Integration
+  import('../../js/dynamic-island.js')
+    .catch(() => console.warn('⚠️ Dynamic Island not found or failed to load'));
+
+  // 4. Initial Page Initialization (if not already handled by scripts)
+  const container = document.getElementById('app-content');
+  if (container && container.dataset.init) {
+    const initFn = container.dataset.init;
+    if (typeof window[initFn] === 'function') {
+      window[initFn]();
+    }
   }
 
-  // Expose core instances to window for legacy scripts/debugging immediately
-  window.barcaState = barcaState;
-  window.barcaAPI = barcaAPI;
-  window.barcaRouter = barcaRouter;
-  window.barcaPrefetch = barcaPrefetch;
-  window.barcaAmbient = barcaAmbient;
-  window.barcaAnimations = barcaAnimations;
+  // 5. Smart Polling System (BarcaPulse)
+  barcaSync.registerDetector('matchEvents', (old, current) => {
+    barcaEvents.checkForMatchEvents(old, current);
+  });
 
+  barcaPulse.subscribe((matches) => {
+    // Find the most relevant match: live, or the closest one (past or future)
+    const now = new Date();
+    const barcaMatch = matches.sort((a, b) => {
+      const diffA = Math.abs(new Date(a.utcDate) - now);
+      const diffB = Math.abs(new Date(b.utcDate) - now);
+      return diffA - diffB;
+    })[0];
 
-  try {
-    // 1. Initialize Prefetch
-    barcaPrefetch.init();
-    barcaPrefetch.warmup([
-      '/overview.html',
-      '/schedule.html',
-      '/results.html',
-      '/la-liga.html',
-      '/ucl.html'
-    ]);
-
-    // 2. Initialize Router
-    barcaRouter.init();
-    updateDateDisplay();
-    window.addEventListener('langChanged', () => updateDateDisplay());
-
-    // 3. Dynamic Island Integration
-    import('../../js/dynamic-island.js')
-      .catch(() => console.warn('⚠️ Dynamic Island not found or failed to load'));
-
-    // 4. Initial Page Initialization (if not already handled by scripts)
-    const container = document.getElementById('app-content');
-    if (container && container.dataset.init) {
-      const initFn = container.dataset.init;
-      if (typeof window[initFn] === 'function') {
-        window[initFn]();
-      }
+    if (barcaMatch) {
+      barcaSync.process(barcaMatch);
     }
+  });
 
-    // 5. Smart Polling System (BarcaPulse)
-    barcaSync.registerDetector('matchEvents', (old, current) => {
-      barcaEvents.checkForMatchEvents(old, current);
-    });
+  barcaPulse.start();
 
-    barcaPulse.subscribe((matches) => {
-      // Find the most relevant match: live, or the closest one (past or future)
-      const now = new Date();
-      const barcaMatch = matches.sort((a, b) => {
-        const diffA = Math.abs(new Date(a.utcDate) - now);
-        const diffB = Math.abs(new Date(b.utcDate) - now);
-        return diffA - diffB;
-      })[0];
+  barcaAmbient.init();
+  checkAppVersion();
 
-      if (barcaMatch) {
-        barcaSync.process(barcaMatch);
-      }
-    });
-
-    barcaPulse.start();
-
-    barcaAmbient.init();
-    checkAppVersion();
-
-    // Ensure we are in idle state if data is already in cache (pre-loaded from index)
-    if (barcaAPI._cache && barcaAPI._cache.has('allData')) {
-      barcaState.setState('idle');
-    }
-
-    barcaEvents.on('GOAL', (data) => {
-    });
-
-    // 6. Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('SW Registered:', reg.scope))
-        .catch(err => console.error('SW Registration Failed:', err));
-    }
-
-  } catch (error) {
-    console.error('❌ SPA Initialization Error:', error);
-  } finally {
+  // Ensure we are in idle state if data is already in cache (pre-loaded from index)
+  if (barcaAPI._cache && barcaAPI._cache.has('allData')) {
+    barcaState.setState('idle');
   }
+
+  barcaEvents.on('GOAL', (data) => {
+    const teamName = data.team === 'home' ? data.match.homeTeam.shortName : data.match.awayTeam.shortName;
+    const scoreStr = `${data.score.home} - ${data.score.away}`;
+    sendNotification('GOL! ⚽', `${teamName} strzela! Wynik: ${scoreStr}`);
+  });
+
+  barcaEvents.on('MATCH_START', (data) => {
+    const m = data.match;
+    sendNotification('Mecz się rozpoczął! 🟢', `${m.homeTeam.shortName} vs ${m.awayTeam.shortName}`);
+  });
+
+  barcaEvents.on('MATCH_END', (data) => {
+    const m = data.match;
+    const score = `${m.score.fullTime.home} - ${m.score.fullTime.away}`;
+    sendNotification('Koniec Meczu 🔴', `Wynik końcowy: ${score}`);
+  });
+
+  // 6. Service Worker Registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW Registered:', reg.scope))
+      .catch(err => console.error('SW Registration Failed:', err));
+  }
+
+} catch (error) {
+  console.error('❌ SPA Initialization Error:', error);
+} finally {
+}
 };
 
 /**
@@ -126,11 +157,11 @@ async function checkAppVersion() {
 }
 
 function showAppPromo(config) {
-  const lang = (window.I18n && window.I18n.currentLang) || 'en';
-  const appName = typeof config.appName === 'object' ? (config.appName[lang] || config.appName['en']) : config.appName;
-  const description = config.description[lang] || config.description['en'];
-  const downloadBtn = lang === 'pl' ? 'Pobierz' : (lang === 'de' ? 'Herunterladen' : 'Download');
-  const closeBtn = lang === 'pl' ? 'Może później' : (lang === 'de' ? 'Vielleicht später' : 'Maybe later');
+  const lang = 'pl'; // Strict Polish
+  const appName = typeof config.appName === 'object' ? (config.appName['pl'] || config.appName) : config.appName;
+  const description = config.description['pl'] || config.description;
+  const downloadBtn = 'Pobierz';
+  const closeBtn = 'Może później';
 
   const overlay = document.createElement('div');
   overlay.id = 'app-promo-overlay';
